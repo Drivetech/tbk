@@ -2,7 +2,7 @@
 
 crypto = require "crypto"
 
-exports.Encryption = class Encryption
+Encryption = class Encryption
 
   constructor: (@senderKey, @recipientKey) ->
 
@@ -38,7 +38,7 @@ exports.Encryption = class Encryption
     encryptedMessage = @encryptMessage signedMessage, message, key, iv
     new Buffer(iv + encryptedKey + encryptedMessage).toString "base64"
 
-exports.Decryption = class Decryption
+Decryption = class Decryption
 
   constructor: (@recipientKey, @senderKey) ->
 
@@ -56,7 +56,7 @@ exports.Decryption = class Decryption
     if @verify signature, message
       return [message, signature.toString()[0]]
 
-    throw new Error "Invalid message signature"
+    throw new InvalidMessageException "Invalid message signature"
 
   getIv: (raw) ->
     raw.slice 0, 16
@@ -67,7 +67,7 @@ exports.Decryption = class Decryption
       encryptedKey = raw.slice 16, 16 + recipientKeyKytes
       @recipientKey.decrypt(encryptedKey)
     catch
-      throw new Error "Incorrect message length."
+      throw new DecryptionError "Incorrect message length."
 
   getDecryptedMessage: (iv, key, raw) ->
     recipientKeyKytes = @recipientKey.keyPair.cache.keyBitLength / 8
@@ -87,3 +87,16 @@ exports.Decryption = class Decryption
   verify: (signature, message) ->
     hash = crypto.createHash("sha512").update(message).digest()
     @senderKey.verify hash, signature
+
+class InvalidMessageException extends Error
+
+class DecryptionError extends Error
+
+class EncryptionError extends Error
+
+module.exports =
+  Encryption: Encryption
+  Decryption: Decryption
+  InvalidMessageException: InvalidMessageException
+  DecryptionError: DecryptionError
+  EncryptionError: EncryptionError
