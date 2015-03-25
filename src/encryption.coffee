@@ -1,11 +1,10 @@
 "use strict"
 
 crypto = require "crypto"
-Errors = require "./errors"
 
-module.exports = class Encryption
+exports.Encryption = class Encryption
 
-  constructor: (@key, @webpayKey) ->
+  constructor: (@senderKey, @recipientKey) ->
 
   keyBytes: =>
     @key.keyPair.cache.keyByteLength
@@ -13,35 +12,78 @@ module.exports = class Encryption
   webpayKeyLength: =>
     @webpayKey.keyPair.cache.keyByteLength
 
-  encrypt: (text) =>
-    try
-      signature = @key.sign crypto.createHash("sha256").update(text).digest()
-      key = crypto.randomBytes 32
-      encripted_key = @webpayKey.encrypt key
-      iv = crypto.randomBytes 16
-      cipher = crypto.createCipheriv "aes-256-cbc", key, iv
-      encripted_text = cipher.update(
-        new Buffer(signature + text)) + cipher.final()
-      return new Buffer(iv + encripted_key + encripted_text).toString "base64"
-    catch e
-      throw new Errors.EncryptionError "Encryption failed: #{e}"
+  getKey: ->
+    crypto.randomBytes 32
 
-  decrypt: (encripted_text) =>
+  getIv: ->
+    crypto.randomBytes 16
+
+  encryptKey: (key) ->
+    @recipientKey.encrypt key
+
+  signMessage: (message) ->
+    @senderKey.sign crypto.createHash("sha256").update(message).digest()
+
+  encryptMessage: (signedMessage, message, key, iv) ->
+    messageToEncrypt = new Buffer signedMessage + message
+    cipher = crypto.createCipheriv "aes-256-cbc", key, iv
+    cipher.setAutoPadding true
+    cipher.update messageToEncrypt
+
+  encrypt: (message) ->
+    key = @getKey()
+    iv = @getIv()
+    encryptedKey = @encryptKey key
+    signedMessage = @signMessage message
+    encryptedMessage = @encryptMessage signedMessage, message, key, iv
+    new Buffer(iv + encryptedKey + encryptedMessage).toString "base64"
+
+exports.Decryption = class Decryption
+
+  constructor: (@recipientKey, @senderKey) ->
+
+  decrypt: (message) ->
+    raw = message.toString()
+
+    iv = @getIv raw
+    key = @getKey raw
+
+    decryptedMessage = @getDecryptedMessage iv, key, raw
+
+    signature = @getSignature decryptedMessage
+    message = @getMessage decryptedMessage
+
+    if @verify signature, message
+      return [message, signature.toString()[0]]
+
+    throw new Error "Invalid message signature"
+
+  getIv: (raw) ->
+    raw.slice 0, 16
+
+  getKey: (raw) ->
     try
-      data = new Buffer encripted_text, "base64"
-      iv = data.slice 0, 16
-      encripted_key = data.slice 16, 16 + @keyBytes
-      key = @key.decrypt encripted_key
-      cipher = crypto.createCipheriv "aes-256-cbc", key, iv
-      decrypted_text = cipher.update(
-        data.slice(16 + @keyBytes, -1)) + cipher.final()
-      signature = decrypted_text.slice 0, @webpayKeyLength
-      text = decrypted_text.slice @webpayKeyLength, -1
-      unless @webpayKey.verify text, signature
-        throw new Errors.EncryptionError "Invalid message signature"
-      return {
-        body: text
-        signature: signature.toString()[0]
-      }
-    catch e
-      throw new Errors.EncryptionError "Decryption failed: #{e}"
+      recipientKeyKytes = @recipientKey.keyPair.cache.keyBitLength / 8
+      encryptedKey = raw.slice 16, 16 + recipientKeyKytes
+      @recipientKey.decrypt(encryptedKey)
+    catch
+      throw new Error "Incorrect message length."
+
+  getDecryptedMessage: (iv, key, raw) ->
+    recipientKeyKytes = @recipientKey.keyPair.cache.keyBitLength / 8
+    encryptedMessage = raw.slice 16 + recipientKeyKytes, raw.length
+    decipher = crypto.createDecipheriv "aes-256-cbc", key, iv
+    decipher.setAutoPadding true
+    decipher.update encryptedMessage
+
+  getSignature: (decryptedMessage) ->
+    senderKeyBytes = @senderKey.keyPair.cache.keyBitLength / 8
+    decryptedMessage.slice 0, senderKeyBytes
+
+  getMessage: (decryptedMessage) ->
+    senderKeyBytes = @senderKey.keyPair.cache.keyBitLength / 8
+    decryptedMessage.slice senderKeyBytes, decryptedMessage.length
+
+  verify: (signature, message) ->
+    hash = crypto.createHash("sha512").update(message).digest()
+    @senderKey.verify hash, signature

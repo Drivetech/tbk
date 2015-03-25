@@ -2,7 +2,7 @@
 
 url = require "url"
 NodeRSA = require "node-rsa"
-encryption = require "./encryption"
+{Encryption, Decryption} = require "./encryption"
 
 TEST_COMMERCE_KEY = """
 -----BEGIN RSA PRIVATE KEY-----
@@ -102,13 +102,13 @@ module.exports = class Commerce
   webpayEncrypt: (decrypted) ->
     commerceKey = @getCommerceKey()
     webpayKey = @getWebpayKey()
-    encrypt = encryption.Encryption commerceKey, webpayKey
+    encrypt = new Encryption commerceKey, webpayKey
     encrypt.encrypt decrypted
 
   webpayDecrypt: (encrypted) ->
     commerceKey = @getCommerceKey()
     webpayKey = @getWebpayKey()
-    decryption = encryption.Decryption commerceKey, webpayKey
+    decryption = new Decryption commerceKey, webpayKey
     decryption.decrypt encrypted
 
   getPublicKey: ->
