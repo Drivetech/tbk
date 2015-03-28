@@ -73,7 +73,7 @@ TEST_COMMERCE_ID = "597026007976"
 module.exports = class Commerce
 
   TEST_COMMERCE_KEY: TEST_COMMERCE_KEY
-  TEST_COMMERCE_ID: "597026007976"
+  TEST_COMMERCE_ID: TEST_COMMERCE_ID
   webpayKeyId: 101
 
   constructor: (options={}) ->
