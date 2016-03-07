@@ -5,24 +5,24 @@ import path from 'path';
 import ursa from 'ursa';
 import crypto from 'crypto';
 import {expect} from 'chai';
-import {Encryption} from '../lib/encryption';
+import {Encryption, Decryption} from '../lib/encryption';
 
 describe('encryption', () => {
-  it('expect encypted message', () => {
-    const message = 'Hola mundo';
-    const senderKey = ursa.createPrivateKey(fs.readFileSync(path.join(__dirname, '..', 'keys', 'commerce_test.pem')));
-    const recipientKey = ursa.createPublicKey(fs.readFileSync(path.join(__dirname, '..', 'keys', 'webpay_test_public.pem')));
-    const encryption = new Encryption(senderKey, recipientKey);
-    const senderKeyBytes = senderKey.getModulus().length;
-    const encryptMessage = crypto.randomBytes(message.length).toString('base64');
-    const encryptKey = crypto.randomBytes(senderKeyBytes).toString('base64');
-    const getIv = crypto.randomBytes(16).toString('base64');
+  let commercePrivate, commercePublic, webpayPrivate, webpayPublic;
+
+  before(() => {
+    commercePrivate = ursa.createPrivateKey(fs.readFileSync(path.join(__dirname, 'keys', 'commerce.pem')));
+    commercePublic = ursa.createPublicKey(fs.readFileSync(path.join(__dirname, 'keys', 'commerce_public.pem')));
+    webpayPrivate = ursa.createPrivateKey(fs.readFileSync(path.join(__dirname, 'keys', 'webpay.pem')));
+    webpayPublic = ursa.createPublicKey(fs.readFileSync(path.join(__dirname, 'keys', 'webpay_public.pem')));
+  });
+
+  it('expect decrypted message equal to message', () => {
+    const message = crypto.randomBytes(16).toString('utf8');
+    const encryption = new Encryption(commercePrivate, webpayPublic);
+    const decryption = new Decryption(webpayPrivate, commercePublic);
     let encryptedMessage = encryption.encrypt(message);
-    const iv = encryptedMessage.substr(0, 16);
-    const encryptedKey = encryptedMessage.substr(16, (16 + senderKeyBytes));
-    encryptedMessage = encryptedMessage.substr(16 + senderKeyBytes);
-    expect(encryptMessage).to.eql(encryptedMessage);
-    expect(encryptKey).to.eql(encryptedKey);
-    expect(getIv).to.eql(iv);
+    const decryptedMessage = decryption.decrypt(encryptedMessage);
+    expect(decryptedMessage.message).to.eql(message);
   });
 });
