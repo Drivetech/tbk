@@ -79,5 +79,6 @@
     "presets": [
       "es2015"
     ]
-  }
+  },
+  "tbkVersionKcc": "6.0"
 }
