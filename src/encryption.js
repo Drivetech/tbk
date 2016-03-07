@@ -11,18 +11,18 @@ class Encryption {
 
   encrypt(message) {
     try {
-      const signature = this.senderKey.hashAndSign('sha256', message, 'utf8', 'utf8');
+      const signature = this.senderKey.hashAndSign('sha512', message, 'utf8', 'hex');
       const key = crypto.randomBytes(32);
-      const encryptedKey = this.recipientKey.encrypt(key, null, 'base64');
+      const encryptedKey = this.recipientKey.encrypt(key, 'hex', 'hex');
       const iv = crypto.randomBytes(16);
-      const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
-      const raw = signature + message;
+      const raw = signature + new Buffer(message).toString('hex');
       const blockSize = 16;
-      const pad = (s) => s + Array((blockSize - s.length % blockSize) + 1).join(String.fromCharCode(blockSize - s.length % blockSize));
-      const messageToEncrypt = pad(raw);
-      let encryptdata  = cipher.update(messageToEncrypt);
-      encryptdata += cipher.final();
-      return new Buffer(`${iv.toString('base64')}${encryptedKey}${encryptdata}`).toString('base64');
+      const pad = (s) => s.toString('hex') + new Buffer(Array((blockSize - s.length % blockSize) + 1).join(String.fromCharCode(blockSize - s.length % blockSize))).toString('hex');
+      const messageToEncrypt = pad(new Buffer(raw, 'hex'));
+      const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+      let encryptdata  = cipher.update(messageToEncrypt, 'hex', 'hex');
+      encryptdata += cipher.final('hex');
+      return new Buffer(iv.toString('hex') + encryptedKey + encryptdata, 'hex').toString('base64');
     } catch (err) {
       throw new Error('Encryption failed');
     }
