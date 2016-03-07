@@ -37,57 +37,58 @@ class Decryption {
   }
 
   decrypt(message) {
-    if (typeof message !== 'string') throw new Error('Message must be string type.');
-    const raw = message.toString();
-    const iv = this.getIv(raw);
-    const key = this.getKey(raw);
-    const decryptedMessage = this.getDecryptedMessage(iv, key, raw);
-    const signature = this.getSignature(decryptedMessage);
-    message = this.getMessage(decryptedMessage);
+    try {
+      const raw = new Buffer(message, 'base64').toString('binary');
+      const iv = new Buffer(raw.substr(0, 16), 'binary');
+      const key = this.getKey(raw);
+      const decryptedData = this.getDecryptedMessage(iv, key, raw);
+      const signature = this.getSignature(decryptedData);
+      const decryptedMessage = this.getMessage(decryptedData);
 
-    if (this.verify(signature, message)) return {message: message, signature: new Buffer(signature).toString('hex')};
-
-    throw new Error('Invalid message signature');
-  }
-
-  getIv(raw) {
-    return raw.substr(0, 16);
+      if (this.verify(signature, decryptedMessage)) {
+        return {
+          message: decryptedMessage.toString(),
+          signature: signature.toString('hex')
+        };
+      }
+      throw new Error('Invalid message signature');
+    } catch (err) {
+      throw new Error('Decryption failed');
+    }
   }
 
   getKey(raw) {
     try {
-      const recipientKeyBytes = this.recipientKey.getModulus().length;
-      const encryptedKey = raw.substring(16, 16 + recipientKeyBytes);
-      return this.recipientKey.publicDecrypt(encryptedKey, 'base64', 'base64');
+      const senderKeyBytes = this.senderKey.getModulus().length;
+      const encryptedKey = new Buffer(raw.substring(16, 16 + senderKeyBytes), 'binary');
+      return this.recipientKey.decrypt(encryptedKey, 'binary', 'binary');
     } catch (err) {
       throw new Error('Incorrect message length.');
     }
   }
 
   getDecryptedMessage(iv, key, raw) {
-    const recipientKeyBytes = this.recipientKey.getModulus().length;
-    const encryptedMessage = raw.substr(16 + recipientKeyBytes);
+    const recipientKeyBytes = this.senderKey.getModulus().length;
+    const encryptdata = new Buffer(raw.substr(16 + recipientKeyBytes), 'binary');
     const unpad = (s) => s.substr(0, s.length - s.substr(s.length - 1).charCodeAt(0));
-    const encryptdata = new Buffer(encryptedMessage, 'base64').toString('binary');
     const cipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-    let decoded = cipher.update(encryptdata);
-    decoded += cipher.final();
+    let decoded = cipher.update(encryptdata, 'binary', 'binary');
+    decoded += cipher.final('binary');
     return unpad(decoded);
   }
 
-  getSignature(decryptedMessage) {
-    const senderKeyBytes = this.recipientKey.getModulus().length;
-    return decryptedMessage.substr(0, senderKeyBytes);
+  getSignature(decryptedData) {
+    const senderKeyBytes = this.senderKey.getModulus().length;
+    return new Buffer(decryptedData.substr(0, senderKeyBytes), 'binary');
   }
 
-  getMessage(decryptedMessage) {
-    const senderKeyBytes = this.recipientKey.getModulus().length;
-    return decryptedMessage.substr(senderKeyBytes);
+  getMessage(decryptedData) {
+    const senderKeyBytes = this.senderKey.getModulus().length;
+    return new Buffer(decryptedData.substr(senderKeyBytes), 'binary');
   }
 
   verify(signature, message) {
-    message = new Buffer(message).toString('base64');
-    return this.senderKey.hashAndVerify('sha256', message, signature, 'base64');
+    return this.senderKey.hashAndVerify('sha512', message, signature, 'base64');
   }
 }
 
