@@ -35,7 +35,7 @@
     "async": "^1.5.2",
     "mathjs": "^3.2.1",
     "request": "^2.69.0",
-    "ursa": "^0.9.3"
+    "ursa": "^0.9.4"
   },
   "devDependencies": {
     "babel-cli": "^6.8.0",
