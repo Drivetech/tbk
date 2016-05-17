@@ -1,11 +1,11 @@
 'use strict';
 
-import math from 'mathjs';
-import pkg from '../package.json';
-import request from 'request';
-import async from 'async';
-import {Commerce} from './commerce';
-import {logger} from './logging';
+const math = require('mathjs');
+const pkg = require('../package.json');
+const request = require('request');
+const whilst = require('async/whilst');
+const Commerce = require('./commerce').Commerce;
+const logger = require('./logging').logger;
 
 const getTokenFromBody = (body) => {
   const tokenRegex = /^TOKEN=([0-9A-Fa-f]+)/;
@@ -73,7 +73,7 @@ class Payment {
       followRedirect: false,
       encoding: null
     };
-    async.whilst(
+    whilst(
       () => isRedirect,
       (callback) => {
         request.post(requestOptions, (err, response, body) => {

@@ -1,11 +1,11 @@
 'use strict';
 
-import fs from 'fs';
-import path from 'path';
-import ursa from 'ursa';
-import crypto from 'crypto';
-import {expect} from 'chai';
-import {Encryption, Decryption} from '../lib/encryption';
+const fs = require('fs');
+const path = require('path');
+const ursa = require('ursa');
+const crypto = require('crypto');
+const expect = require('chai').expect;
+const enc = require('../src/encryption');
 
 describe('encryption', () => {
   let commercePrivate, commercePublic, webpayPrivate, webpayPublic;
@@ -19,8 +19,8 @@ describe('encryption', () => {
 
   it('expect decrypted message equal to message', () => {
     const message = crypto.randomBytes(16).toString('utf8');
-    const encryption = new Encryption(commercePrivate, webpayPublic);
-    const decryption = new Decryption(webpayPrivate, commercePublic);
+    const encryption = new enc.Encryption(commercePrivate, webpayPublic);
+    const decryption = new enc.Decryption(webpayPrivate, commercePublic);
     let encryptedMessage = encryption.encrypt(message);
     const decryptedMessage = decryption.decrypt(encryptedMessage);
     expect(decryptedMessage.message).to.eql(message);

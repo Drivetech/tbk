@@ -1,6 +1,6 @@
 'use strict';
 
-import crypto from 'crypto';
+const crypto = require('crypto');
 
 class Encryption {
 
@@ -61,7 +61,7 @@ class Decryption {
     try {
       const senderKeyBytes = this.senderKey.getModulus().length;
       const encryptedKey = new Buffer(raw.substring(16, 16 + senderKeyBytes), 'binary');
-      return this.recipientKey.decrypt(encryptedKey, 'binary', 'binary');
+      return this.recipientKey.decrypt(encryptedKey, 'binary');
     } catch (err) {
       throw new Error('Incorrect message length.');
     }
