@@ -30,7 +30,7 @@
   "homepage": "https://github.com/lgaticaq/tbk#readme",
   "dependencies": {
     "async": "^2.0.0-rc.5",
-    "mathjs": "^3.2.1",
+    "mathjs": "^4.0.0",
     "request": "^2.72.0",
     "ursa": "^0.9.4"
   },
