@@ -4,10 +4,11 @@
   "description": "NodeJS implementation of Transbank's Webpay protocol.",
   "main": "lib",
   "scripts": {
-    "prepublish": "eslint .",
+    "prepublish": "npm run snyk-protect && eslint .",
     "test": "istanbul cover _mocha",
     "coveralls": "coveralls < coverage/lcov.info",
-    "codeclimate": "codeclimate-test-reporter < coverage/lcov.info"
+    "codeclimate": "codeclimate-test-reporter < coverage/lcov.info",
+    "snyk-protect": "snyk protect"
   },
   "engines": {
     "node": ">=4"
@@ -32,7 +33,8 @@
     "async": "^2.0.0-rc.5",
     "mathjs": "^3.2.1",
     "request": "^2.72.0",
-    "ursa": "^0.9.4"
+    "ursa": "^0.9.4",
+    "snyk": "^1.319.0"
   },
   "devDependencies": {
     "chai": "4.1.2",
@@ -68,5 +70,6 @@
       ]
     }
   },
-  "tbkVersionKcc": "6.0"
+  "tbkVersionKcc": "6.0",
+  "snyk": true
 }
